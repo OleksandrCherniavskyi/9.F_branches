@@ -1,34 +1,20 @@
 from bardapi import Bard
 from bard_token import token
 import os
-import streamlit as st
-from streamlit_chat import message
-#from streamlit import chat_message as message
+from dotenv import load_dotenv
 os.environ["_BARD_API_KEY"] = token
 
-st.title("Google Bard Clone")
 
-def responce_api(promot):
-    message=Bard().get_answer(str(promot))['content']
-    return message
+load_dotenv()
 
-def user_input():
-    input_text = st.text_input("Enter Your Prompt: ")
-    return input_text
+bard = Bard()
 
-if 'generate' not in st.session_state:
-    st.session_state['generate']=[]
-if 'past' not in st.session_state:
-    st.session_state['past']=[]
+print("* Welcome to Bard Chat! *")
 
-user_text = user_input()
+while True:
+  user_input = input("\U0001F464 You: ")
+  print("")
+  print("\U0001F916 Bard:", bard.get_answer(user_input.strip())['content'])
+  print("-" * 100)
 
-if user_text:
-    output = responce_api(user_text)
-    st.session_state.generate.append(output)
-    st.session_state.past.append(user_text)
 
-if st.session_state['generate']:
-    for i in range(len(st.session_state['generate'])-1, -1, -1):
-        message(st.session_state["past"][i], is_user=True, key=str(i) + '_user')
-        message(st.session_state['generate'][i], key=str(i))
