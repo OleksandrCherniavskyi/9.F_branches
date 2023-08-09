@@ -10,7 +10,7 @@ os.environ["_BARD_API_KEY"] = token
 def get_family_tree(name):
     """Gets the family tree of the given name."""
     # JSON
-    message = "In JSON (full_name, maiden_name, born_date, depth_date, father, mother, childrens, source_link)  format explain. If some information is unknown leave empty. For the person {}?".format(name)
+    message = "In JSON (full_name, maiden_name, born_date, depth_date, father, mother, childrens, source_link)  format explain. If some information is unknown leave empty(null). For the person {}?".format(name)
 
     # Table
     #message = "Create table ( First Name, Last Name, Family Name, Born Date, Depth Date, Father, Mother, Children, Source Link)  format explain, Fill it the table for  {}?".format(
@@ -28,19 +28,31 @@ def get_family_tree(name):
 
 
     print(content_json)
+    data_dict = json.loads(content_json)
 
+    full_name = data_dict["full_name"]
+    maiden_name = data_dict["maiden_name"]
+    born_date = data_dict["born_date"]
+    death_date = data_dict["death_date"]
+    father = data_dict["father"]
+    mother = data_dict["mother"]
+    children = data_dict["children"]
+    for child in children:
+        child
+    source_link = data_dict["source_link"]
 
-    #import sqlite3
+    sql_query = f"""
+    INSERT INTO tree (full_name, maiden_name, born_date, death_date, source_link)
+    VALUES (?, ?, ?, ?, ?);
+    """
 
-    #conn = sqlite3.connect("tree.db")
+    import sqlite3
 
-    #c = conn.cursor()
-
-    #c.execute(sql_query)
-
-    #conn.commit()
-
-    #conn.close()
+    conn = sqlite3.connect("treeDB.db")
+    c = conn.cursor()
+    c.execute(sql_query, (full_name, maiden_name, born_date, death_date, source_link))
+    conn.commit()
+    conn.close()
 
 
 

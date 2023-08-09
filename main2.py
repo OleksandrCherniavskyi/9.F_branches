@@ -1,3 +1,7 @@
+
+
+# Bard chat
+
 from bardapi import Bard
 from bard_token import token
 import os

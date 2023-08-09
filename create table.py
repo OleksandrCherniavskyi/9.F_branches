@@ -7,7 +7,7 @@ conn = sqlite3.connect('treeDB.db')
 cursor = conn.cursor()
 
 # Create the `tree` table
-cursor.execute('CREATE TABLE tree ('
+cursor.execute('CREATE TABLE IF NOT EXISTS tree ('
                'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                'full_name VARCHAR(255),'
                'maiden_name VARCHAR(255),'
@@ -17,6 +17,20 @@ cursor.execute('CREATE TABLE tree ('
                'mother INT,'
                'children INT,'
                'source_link VARCHAR(255)'
+               ')')
+
+# Commit the changes
+conn.commit()
+
+
+
+# Create the `relationships` table
+cursor.execute('CREATE TABLE IF NOT EXISTS relationships ('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+               'parent_id INT,'
+               'child_id INT,'
+               'FOREIGN KEY(parent_id) REFERENCES tree(id),'
+               'FOREIGN KEY(child_id) REFERENCES tree(id)'
                ')')
 
 # Commit the changes
