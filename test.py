@@ -32,14 +32,14 @@ def main_person():
   conn = sqlite3.connect("treeDB.db")
   c = conn.cursor()
 
-  ## ADD main person
-  #
-  #query_add_main_person = f"""
-  #INSERT INTO tree (full_name, maiden_name, born_date, death_date, source_link)
-  #VALUES (?, ?, ?, ?, ?);
-  #"""
-  #c.execute(query_add_main_person, (full_name, maiden_name, born_date, death_date, source_link))
-  #conn.commit()
+  # ADD main person
+
+  query_add_main_person = f"""
+  INSERT INTO tree (full_name, maiden_name, born_date, death_date, source_link)
+  VALUES (?, ?, ?, ?, ?);
+  """
+  c.execute(query_add_main_person, (full_name, maiden_name, born_date, death_date, source_link))
+  conn.commit()
 
   # ID main person
 
@@ -49,31 +49,31 @@ def main_person():
   id_main_person = c.fetchone()
   id_main_person = id_main_person[0]
 
-  ## ADD father main person
-  #
-  #query_add_father_main_person = f"""
-  #  INSERT INTO tree (full_name, children) VALUES (?, ?);
-  #  """
-  #c.execute(query_add_father_main_person, (father, id_main_person))
-  #conn.commit()
-  #
-  ## ADD mather main person
-  #
-  #query_add_father_main_person = f"""
-  #    INSERT INTO tree (full_name, children) VALUES (?, ?);
-  #    """
-  #c.execute(query_add_father_main_person, (mother, id_main_person))
-  #conn.commit()
+  # ADD father main person
+
+  query_add_father_main_person = f"""
+    INSERT INTO tree (full_name) VALUES (?);
+    """
+  c.execute(query_add_father_main_person, (father,))
+  conn.commit()
+
+  # ADD mather main person
+
+  query_add_father_main_person = f"""
+      INSERT INTO tree (full_name) VALUES (?);
+      """
+  c.execute(query_add_father_main_person, (mother,))
+  conn.commit()
 
   # ADD children main person
-  #for child in children:
-  #  child
-#
-  #  query_add_father_main_person = f"""
-  #        INSERT INTO tree (full_name, father) VALUES (?, ?);
-  #        """
-  #  c.execute(query_add_father_main_person, (child, id_main_person))
-  #  conn.commit()
+  for child in children:
+    child
+
+    query_add_father_main_person = f"""
+          INSERT INTO tree (full_name) VALUES (?);
+          """
+    c.execute(query_add_father_main_person, (child,))
+    conn.commit()
 
   # Ask BD, id father, mother, children(s)
 
@@ -98,33 +98,23 @@ def main_person():
     id_child = id_child[0]
     id_childrens.append(id_child)
 
+  # add relationships for parents
 
-
-
-  ## Update  main person
-
-  query_update_main_person = """
-  UPDATE tree
-  SET father = ?, mother = ?
-  WHERE id = ?;
-  """
-  c.execute(query_update_main_person, (id_father, id_mother,  id_main_person))
+  child_relationship = """
+        INSERT INTO relationships (parent_id, child_id)
+        VALUES (?, ?);
+        """
+  c.execute(child_relationship, (id_father, id_main_person))
+  c.execute(child_relationship, (id_mother, id_main_person))
   conn.commit()
 
+  # add relationships for children's
+
   for child_id in id_childrens:
-    query_add_relationship = """
-      INSERT INTO relationships (parent_id, child_id)
-      VALUES (?, ?);
-      """
-    c.execute(query_add_relationship, (id_main_person, child_id))
+
+    c.execute(child_relationship, (id_main_person, child_id))
     conn.commit()
 
-  # work but not good
-
-  #query_update_main_person_children = "UPDATE tree SET children = ?, father = ?, mother = ? WHERE id = ?;"
-  #c.execute(query_update_main_person_children, (','.join(map(str, id_childrens)), id_father, id_mother, id_main_person))
-  #conn.commit()
-  #conn.close()
 
 main_person()
 

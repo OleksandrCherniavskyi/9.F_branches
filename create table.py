@@ -13,9 +13,9 @@ cursor.execute('CREATE TABLE IF NOT EXISTS tree ('
                'maiden_name VARCHAR(255),'
                'born_date DATE,'
                'death_date DATE,'
-               'father INT,'
-               'mother INT,'
-               'children INT,'
+               #'father INT,'
+               #'mother INT,'
+               #'children INT,'
                'source_link VARCHAR(255)'
                ')')
 
