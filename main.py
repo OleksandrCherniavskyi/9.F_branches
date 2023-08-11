@@ -15,7 +15,7 @@ def get_family_tree(name):
 
 
     content = Bard().get_answer(str(message))['content']
-    print(content)
+    #print(content)
     start_pos = content.find("{")
     end_pos = content.find("}")
     content_json = content[start_pos:end_pos + 1].strip()
@@ -44,9 +44,9 @@ def get_family_tree(name):
         # ADD main person
 
         query_add_main_person = f"""
-      INSERT INTO tree (full_name, maiden_name, born_date, death_date, source_link)
-      VALUES (?, ?, ?, ?, ?);
-      """
+        INSERT INTO tree (full_name, maiden_name, born_date, death_date, source_link)
+        VALUES (?, ?, ?, ?, ?);
+        """
         c.execute(query_add_main_person, (full_name, maiden_name, born_date, death_date, source_link))
         conn.commit()
 
