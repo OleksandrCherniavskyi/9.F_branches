@@ -1,0 +1,27 @@
+1.+ Create query to create table in DB
+2.+ Create Bard request to response JSON 'spider'
+3.+ Convert JSON to SQL query add data in table
+    +- main 'spider'
+    +- father 'spider'
+    +- mother 'spider'
+    +- children 'spider'
+    +- update main 'spider'
+    +CREATED TABLE RELATIONSHIPS
+    +CREATE RELATIONSHIPS BETWEEN SPIDER
+4. Create query to check in DB looking person
+    +- update person info
+    +- update main functions
+5. +Create Bard requset  to response JSON
+    +- looking person+father
+    +- looking person+children
+6. +Similarity search in DB
+    +- minus middle name
+6.Change DB to PostgreSQL
+7.Create Django server
+8. Normalization data
+
+
+
+IDEA:
+1. FROM browser page search looking person, and clicking in next person update DB and Branch on webpage.
+2. All who use app have same DB
