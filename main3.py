@@ -98,19 +98,69 @@ def bard_search_engine(message):
     start_pos = content.find("{")
     end_pos = content.find("}")
     content_json = content[start_pos:end_pos + 1].strip()
-    data_dict = json.loads(content_json)
+    data_dict = json.loads(content_json,  strict=False)
     json_to_sql(data_dict)
 
 def json_to_sql(data_dict):
     full_name = data_dict["full_name"]
+    full_name = full_name.replace(" Jr.", "").replace(" Sr.", "")
+    split_full_name = full_name.split()
+    if len(split_full_name) > 2:
+        first_name = split_full_name[0]
+        last_name = split_full_name[-1]
+        full_name = f"{first_name} {last_name}"
+    else:
+        full_name = full_name
+
     maiden_name = data_dict["maiden_name"]
+
     born_date = data_dict["born_date"]
+
     death_date = data_dict["death_date"]
+
     father = data_dict["father"]
+    if father is None:
+        pass
+    else:
+        father = father.replace(" Jr.", "").replace(" Sr.", "")
+        split_father = father.split()
+        if len(split_father) > 2:
+            first_name = split_father[0]
+            last_name = split_father[-1]
+            father = f"{first_name} {last_name}"
+        else:
+            father = father
+
     mother = data_dict["mother"]
+    if mother is None:
+        pass
+    else:
+        mother = mother.replace(" Jr.", "").replace(" Sr.", "")
+        split_mother = mother.split()
+        if len(mother) > 2:
+            first_name = split_mother[0]
+            last_name = split_mother[-1]
+            mother = f"{first_name} {last_name}"
+        else:
+            mother = mother
+
     children = data_dict["children"]
-    for child in children:
-        child
+    childrens = []
+    if children is None:
+        pass
+    else:
+        for child in children:
+            child = child.replace(" Jr.", "").replace(" Sr.", "")
+            split_child = child.split()
+            if len(child) > 2:
+                first_name = split_child[0]
+                last_name = split_child[-1]
+                child = f"{first_name} {last_name}"
+                childrens.append(child)
+            else:
+                child = child
+                childrens.append(child)
+
     source_link = data_dict["source_link"]
 
     # ADD main person
@@ -190,7 +240,7 @@ def json_to_sql(data_dict):
     if children is None:
         pass
     else:
-        for child in children:
+        for child in childrens:
             c.execute(query_ask_id_person, (child,))
             search_person_id = c.fetchone()
 
@@ -210,4 +260,5 @@ def json_to_sql(data_dict):
 
 if __name__ == "__main__":
     name = input("Enter the name: ")
+    name = name.title()
     check_in_db(name)
