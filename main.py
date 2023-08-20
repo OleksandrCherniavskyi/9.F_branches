@@ -4,18 +4,35 @@ from bardapi import Bard
 from bard_token import token
 import os
 
+import psycopg2
+from bard_token import db_name, db_user, db_pass, db_host, db_port
 
-os.environ["_BARD_API_KEY"] = token
+conn = psycopg2.connect(
+    database=db_name,
+    user=db_user,
+    password=db_pass,
+    host=db_host,
+    port=db_port
+)
+conn.autocommit = True
 
-# Connect to DB
-conn = sqlite3.connect("treeDB.db")
 c = conn.cursor()
 
 
+
+
+os.environ["_BARD_API_KEY"] = token
+
+## Connect to DB
+#conn = sqlite3.connect("treeDB.db")
+#c = conn.cursor()
+
+
 # QUERY
-query_ask_id_person = "SELECT id FROM tree WHERE full_name = ?"
-query_add_family_main_person = f"""INSERT INTO tree (full_name) VALUES (?);"""
-child_relationship = """INSERT INTO relationships (parent_id, child_id) VALUES (?, ?);"""
+query_ask_id_person = "SELECT id FROM branch WHERE full_name = %s;"
+query_add_family_main_person = "INSERT INTO branch (full_name) VALUES (%s) RETURNING id;"
+child_relationship = "INSERT INTO relationships (parent_id, child_id) VALUES (%s, %s);"
+
 
 
 def check_in_db(name):
@@ -28,13 +45,13 @@ def check_in_db(name):
     except TypeError:
     #if search_person_id is None:
         # JSON
-        message = "In JSON (full_name, maiden_name, born_date, depth_date, father, mother, children, source_link)  " \
+        message = "In JSON (full_name, born_date, depth_date, father, mother, children, source_link)  " \
                   "format explain. If some information is unknown leave empty(null)." \
                   "Father, mother, children just a full name. For the person {}?".format(name)
         bard_search_engine(message)
     else:
         # check validation data
-        query_ask_source_link = "SELECT source_link FROM tree WHERE id = ?"
+        query_ask_source_link = "SELECT source_link FROM branch WHERE id = %s;"
         c.execute(query_ask_source_link, (search_person_id,))
         conn.commit()
         link = c.fetchone()
@@ -49,20 +66,20 @@ def check_in_db(name):
 def update_person_info(search_person_id):
     try:
         parent_search_person = """SELECT t.full_name AS parent_name
-                        FROM tree AS t
-                        WHERE t.id IN (
-                            SELECT parent_id
-                            FROM relationships
-                            WHERE child_id = ?
-                        );
-                        """
+                                FROM branch AS t
+                                WHERE t.id IN (
+                                    SELECT parent_id
+                                    FROM relationships
+                                    WHERE child_id = %s
+                                );
+                                """
         c.execute(parent_search_person, (search_person_id,))
         conn.commit()
         parent = c.fetchall()
         parent = parent
         # JSON
         message = (
-            "In JSON (full_name, maiden_name, born_date, death_date, father, mother, children, source_link) format explain. "
+            "In JSON (full_name, born_date, death_date, father, mother, children, source_link) format explain. "
             "If some information is unknown, leave empty (null)."
             "Father, mother, children just a full name."
             "For the person: {}, parent(s): {}"
@@ -70,19 +87,20 @@ def update_person_info(search_person_id):
         bard_search_engine(message)
     except IndexError:
         children_search_person = """SELECT t.id, t.full_name AS parent,
-        (SELECT ct.full_name
-        FROM tree AS ct
-        WHERE ct.id = r.child_id) AS children
-        FROM tree AS t
-        LEFT JOIN relationships AS r ON t.id = r.parent_id
-        WHERE t.id = ?; """
+                (SELECT ct.full_name
+                FROM branch AS ct
+                WHERE ct.id = r.child_id) AS children
+                FROM branch AS t
+                LEFT JOIN relationships AS r ON t.id = r.parent_id
+                WHERE t.id = %s;"""
+
         c.execute(children_search_person, (search_person_id,))
         conn.commit()
         childrens = c.fetchall()
         child_names = [children[2] for children in childrens]
         # JSON
         message = (
-            "In JSON (full_name, maiden_name, born_date, death_date, father, mother, children, source_link) format explain. "
+            "In JSON (full_name, born_date, death_date, father, mother, children, source_link) format explain. "
             "If some information is unknown, leave empty (null). "
             "Father, mother, children just a full name."
             "For the person: {} is a parent for: {}"
@@ -111,8 +129,6 @@ def json_to_sql(data_dict):
         full_name = f"{first_name} {last_name}"
     else:
         full_name = full_name
-
-    maiden_name = data_dict["maiden_name"]
 
     born_date = data_dict["born_date"]
 
@@ -172,19 +188,22 @@ def json_to_sql(data_dict):
         search_person_id = c.fetchone()
         search_person_id = search_person_id[0]
         query_update_main_person = """
-            UPDATE tree
-            SET full_name = ?, maiden_name = ?, born_date = ?, death_date = ?, source_link = ?
-            WHERE id = ?;
+            UPDATE branch
+            SET full_name = %s, born_date = %s, death_date = %s, source_link = %s
+            WHERE id = %s;
         """
+
         c.execute(query_update_main_person,
-                  (full_name, maiden_name, born_date, death_date, source_link, search_person_id))
+                  (full_name, born_date, death_date, source_link, search_person_id))
         conn.commit()
     except TypeError:
-        query_add_main_person = f"""
-                INSERT INTO tree (full_name, maiden_name, born_date, death_date, source_link)
-                VALUES (?, ?, ?, ?, ?);
-                """
-        c.execute(query_add_main_person, (full_name, maiden_name, born_date, death_date, source_link))
+        query_add_main_person = """
+            INSERT INTO branch (full_name, born_date, death_date, source_link)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id;
+        """
+
+        c.execute(query_add_main_person, (full_name, born_date, death_date, source_link))
         conn.commit()
 
     # ID main person
@@ -248,10 +267,11 @@ def json_to_sql(data_dict):
                 # Person already exists in the DB
                 search_person_id = search_person_id[0]
             else:
-                # Add the child to the tree table
+                # Add the child to the branch table
                 c.execute(query_add_family_main_person, (child,))
-                conn.commit()
-                search_person_id = c.lastrowid  # Get the last inserted ID
+                c.execute(query_ask_id_person, (child,))
+                search_person_id = c.fetchone()
+                search_person_id = search_person_id[0]
 
             # Create the relationship between the main person and the child
             c.execute(child_relationship, (id_main_person, search_person_id))
