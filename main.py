@@ -17,15 +17,26 @@ conn = psycopg2.connect(
 conn.autocommit = True
 
 c = conn.cursor()
-
+table_1 = """CREATE TABLE IF NOT EXISTS branch (
+    id SERIAL PRIMARY KEY,
+    full_name VARCHAR(255),
+    born_date DATE,
+    death_date DATE,
+    source_link VARCHAR(255)
+);"""
+table_2 = """CREATE TABLE IF NOT EXISTS relationships (
+    id SERIAL PRIMARY KEY,
+    parent_id INT,
+    child_id INT,
+    FOREIGN KEY(parent_id) REFERENCES branch(id),
+    FOREIGN KEY(child_id) REFERENCES branch(id)
+);"""
+c.execute(table_1)
+c.execute(table_2)
 
 
 
 os.environ["_BARD_API_KEY"] = token
-
-## Connect to DB
-#conn = sqlite3.connect("treeDB.db")
-#c = conn.cursor()
 
 
 # QUERY
@@ -39,7 +50,7 @@ def check_in_db(name):
     try:
         # check person id in DB
         c.execute(query_ask_id_person, (name,))
-        conn.commit()
+        #conn.commit()
         search_person_id = c.fetchone()
         search_person_id = search_person_id[0]
     except TypeError:
@@ -53,7 +64,7 @@ def check_in_db(name):
         # check validation data
         query_ask_source_link = "SELECT source_link FROM branch WHERE id = %s;"
         c.execute(query_ask_source_link, (search_person_id,))
-        conn.commit()
+        #conn.commit()
         link = c.fetchone()
         link = link[0]
 
@@ -74,7 +85,7 @@ def update_person_info(search_person_id):
                                 );
                                 """
         c.execute(parent_search_person, (search_person_id,))
-        conn.commit()
+        #conn.commit()
         parent = c.fetchall()
         parent = parent
         # JSON
@@ -95,7 +106,7 @@ def update_person_info(search_person_id):
                 WHERE t.id = %s;"""
 
         c.execute(children_search_person, (search_person_id,))
-        conn.commit()
+        #conn.commit()
         childrens = c.fetchall()
         child_names = [children[2] for children in childrens]
         # JSON
@@ -120,162 +131,164 @@ def bard_search_engine(message):
     json_to_sql(data_dict)
 
 def json_to_sql(data_dict):
-    full_name = data_dict["full_name"]
-    full_name = full_name.replace(" Jr.", "").replace(" Sr.", "")
-    split_full_name = full_name.split()
-    if len(split_full_name) > 2:
-        first_name = split_full_name[0]
-        last_name = split_full_name[-1]
-        full_name = f"{first_name} {last_name}"
-    else:
-        full_name = full_name
-
-    born_date = data_dict["born_date"]
-
-    death_date = data_dict["death_date"]
-
-    father = data_dict["father"]
-    if father is None:
-        pass
-    else:
-        father = father.replace(" Jr.", "").replace(" Sr.", "")
-        split_father = father.split()
-        if len(split_father) > 2:
-            first_name = split_father[0]
-            last_name = split_father[-1]
-            father = f"{first_name} {last_name}"
-        else:
-            father = father
-
-    mother = data_dict["mother"]
-    if mother is None:
-        pass
-    else:
-        mother = mother.replace(" Jr.", "").replace(" Sr.", "")
-        split_mother = mother.split()
-        if len(mother) > 2:
-            first_name = split_mother[0]
-            last_name = split_mother[-1]
-            mother = f"{first_name} {last_name}"
-        else:
-            mother = mother
-
-    children = data_dict["children"]
-    childrens = []
-    if children is None:
-        pass
-    else:
-        for child in children:
-            child = child.replace(" Jr.", "").replace(" Sr.", "")
-            split_child = child.split()
-            if len(child) > 2:
-                first_name = split_child[0]
-                last_name = split_child[-1]
-                child = f"{first_name} {last_name}"
-                childrens.append(child)
-            else:
-                child = child
-                childrens.append(child)
-
-    source_link = data_dict["source_link"]
-
-    # ADD main person
-
     try:
-        # check person id in DB
-        c.execute(query_ask_id_person, (full_name,))
-        conn.commit()
-        search_person_id = c.fetchone()
-        search_person_id = search_person_id[0]
-        query_update_main_person = """
-            UPDATE branch
-            SET full_name = %s, born_date = %s, death_date = %s, source_link = %s
-            WHERE id = %s;
-        """
+        full_name = data_dict["full_name"]
+        full_name = full_name.replace(" Jr.", "").replace(" Sr.", "")
+        split_full_name = full_name.split()
+        if len(split_full_name) > 2:
+            first_name = split_full_name[0]
+            last_name = split_full_name[-1]
+            full_name = f"{first_name} {last_name}"
+        else:
+            full_name = full_name
 
-        c.execute(query_update_main_person,
-                  (full_name, born_date, death_date, source_link, search_person_id))
-        conn.commit()
-    except TypeError:
-        query_add_main_person = """
-            INSERT INTO branch (full_name, born_date, death_date, source_link)
-            VALUES (%s, %s, %s, %s)
-            RETURNING id;
-        """
+        born_date = data_dict["born_date"]
 
-        c.execute(query_add_main_person, (full_name, born_date, death_date, source_link))
-        conn.commit()
+        death_date = data_dict["death_date"]
 
-    # ID main person
-
-    c.execute(query_ask_id_person, (full_name,))
-    conn.commit()
-    id_main_person = c.fetchone()
-    id_main_person = id_main_person[0]
-
-    # ADD father main person
-
-    if father is None:
-        pass
-    else:
-        try:
-            # check person id in DB
-            c.execute(query_ask_id_person, (father,))
-            conn.commit()
-            search_person_id = c.fetchone()
-            search_person_id = search_person_id[0]
-        except TypeError:
-            c.execute(query_add_family_main_person, (father,))
-            conn.commit()
-            c.execute(query_ask_id_person, (father,))
-            conn.commit()
-            id_father = c.fetchone()
-            id_father = id_father[0]
-            c.execute(child_relationship, (id_father, id_main_person))
-            conn.commit()
-
-    if mother is None:
-        pass
-    else:
-        try:
-            # check person id in DB
-            c.execute(query_ask_id_person, (mother,))
-            conn.commit()
-            search_person_id = c.fetchone()
-            search_person_id = search_person_id[0]
-        except TypeError:
-            c.execute(query_add_family_main_person, (mother,))
-            conn.commit()
-            c.execute(query_ask_id_person, (mother,))
-            conn.commit()
-            id_mother = c.fetchone()
-            id_mother = id_mother[0]
-            c.execute(child_relationship, (id_mother, id_main_person))
-            conn.commit()
-
-
-    # ADD children main person
-    # Loop through each child and add them to the main person's family
-    if children is None:
-        pass
-    else:
-        for child in childrens:
-            c.execute(query_ask_id_person, (child,))
-            search_person_id = c.fetchone()
-
-            if search_person_id:
-                # Person already exists in the DB
-                search_person_id = search_person_id[0]
+        father = data_dict["father"]
+        if father is None:
+            pass
+        else:
+            father = father.replace(" Jr.", "").replace(" Sr.", "")
+            split_father = father.split()
+            if len(split_father) > 2:
+                first_name = split_father[0]
+                last_name = split_father[-1]
+                father = f"{first_name} {last_name}"
             else:
-                # Add the child to the branch table
-                c.execute(query_add_family_main_person, (child,))
-                c.execute(query_ask_id_person, (child,))
+                father = father
+
+        mother = data_dict["mother"]
+        if mother is None:
+            pass
+        else:
+            mother = mother.replace(" Jr.", "").replace(" Sr.", "")
+            split_mother = mother.split()
+            if len(mother) > 2:
+                first_name = split_mother[0]
+                last_name = split_mother[-1]
+                mother = f"{first_name} {last_name}"
+            else:
+                mother = mother
+
+        children = data_dict["children"]
+        childrens = []
+        if children is None:
+            pass
+        else:
+            for child in children:
+                child = child.replace(" Jr.", "").replace(" Sr.", "")
+                split_child = child.split()
+                if len(child) > 2:
+                    first_name = split_child[0]
+                    last_name = split_child[-1]
+                    child = f"{first_name} {last_name}"
+                    childrens.append(child)
+                else:
+                    child = child
+                    childrens.append(child)
+
+        source_link = data_dict["source_link"]
+
+        # ADD main person
+
+        try:
+            # check person id in DB
+            c.execute(query_ask_id_person, (full_name,))
+            #conn.commit()
+            search_person_id = c.fetchone()
+            search_person_id = search_person_id[0]
+            query_update_main_person = """
+                UPDATE branch
+                SET full_name = %s, born_date = %s, death_date = %s, source_link = %s
+                WHERE id = %s;
+            """
+
+            c.execute(query_update_main_person,
+                      (full_name, born_date, death_date, source_link, search_person_id))
+            #conn.commit()
+        except TypeError:
+            query_add_main_person = """
+                INSERT INTO branch (full_name, born_date, death_date, source_link)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id;
+            """
+
+            c.execute(query_add_main_person, (full_name, born_date, death_date, source_link))
+            #conn.commit()
+
+        # ID main person
+
+        c.execute(query_ask_id_person, (full_name,))
+        #conn.commit()
+        id_main_person = c.fetchone()
+        id_main_person = id_main_person[0]
+
+        # ADD father main person
+
+        if father is None:
+            pass
+        else:
+            try:
+                # check person id in DB
+                c.execute(query_ask_id_person, (father,))
+                #conn.commit()
                 search_person_id = c.fetchone()
                 search_person_id = search_person_id[0]
+            except TypeError:
+                c.execute(query_add_family_main_person, (father,))
+                #conn.commit()
+                c.execute(query_ask_id_person, (father,))
+                #conn.commit()
+                id_father = c.fetchone()
+                id_father = id_father[0]
+                c.execute(child_relationship, (id_father, id_main_person))
+                #conn.commit()
 
-            # Create the relationship between the main person and the child
-            c.execute(child_relationship, (id_main_person, search_person_id))
-            conn.commit()
+        if mother is None:
+            pass
+        else:
+            try:
+                # check person id in DB
+                c.execute(query_ask_id_person, (mother,))
+                #conn.commit()
+                search_person_id = c.fetchone()
+                search_person_id = search_person_id[0]
+            except TypeError:
+                c.execute(query_add_family_main_person, (mother,))
+                #conn.commit()
+                c.execute(query_ask_id_person, (mother,))
+                #conn.commit()
+                id_mother = c.fetchone()
+                id_mother = id_mother[0]
+                c.execute(child_relationship, (id_mother, id_main_person))
+                #conn.commit()
+
+
+        # ADD children main person
+        # Loop through each child and add them to the main person's family
+        if children is None:
+            pass
+        else:
+            for child in childrens:
+                c.execute(query_ask_id_person, (child,))
+                search_person_id = c.fetchone()
+
+                if search_person_id:
+                    # Person already exists in the DB
+                    search_person_id = search_person_id[0]
+                else:
+                    # Add the child to the branch table
+                    c.execute(query_add_family_main_person, (child,))
+                    c.execute(query_ask_id_person, (child,))
+                    search_person_id = c.fetchone()
+                    search_person_id = search_person_id[0]
+
+                # Create the relationship between the main person and the child
+                c.execute(child_relationship, (id_main_person, search_person_id))
+    finally:
+        c.close()
 
 
 if __name__ == "__main__":

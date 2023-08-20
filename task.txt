@@ -8,7 +8,7 @@
     +- update main 'spider'
     +CREATED TABLE RELATIONSHIPS
     +CREATE RELATIONSHIPS BETWEEN SPIDER
-4. Create query to check in DB looking person
+4. +Create query to check in DB looking person
     +- update person info
     +- update main functions
 5. +Create Bard requset  to response JSON
@@ -16,8 +16,10 @@
     +- looking person+children
 6. +Similarity search in DB
     +- minus middle name
-6.Change DB to PostgreSQL
-7.Create Django server
+6.+Change DB to PostgreSQL
+7. Create Django server
+    - connect to AWS PostgresDB
+    -
 8. Normalization data
 
 
