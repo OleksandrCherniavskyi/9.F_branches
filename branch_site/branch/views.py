@@ -206,7 +206,7 @@ def json_to_sql(data_dict):
                 )
                 new_relationships.save()
             except Peoples.DoesNotExist:
-                add_mother = Peoples.objects.get(full_name=mother)
+                add_mother = Peoples(full_name=mother)
                 add_mother.save()  # Save the new family member to the database
                 # Retrieve the ID of the newly added father
                 id_mother = add_mother.id
@@ -221,23 +221,29 @@ def json_to_sql(data_dict):
         # Loop through each child and add them to the main person's family
         if children is None:
             pass
+        else:
+            for child in childrens:
+                try:
+                    search_person_id = Peoples.objects.get(full_name=child)
+                    search_person_id = search_person_id.id
+                    new_child_relationships = Relationships(
 
-        for child in childrens:
-            try:
-                search_person_id = Peoples.objects.get(full_name=child)
-                search_person_id = search_person_id.id
-            except Peoples.DoesNotExist:
-                new_person = Peoples(
-                    full_name=child
-                )
-                new_person.save()
-                search_person_id = Peoples.objects.get(full_name=child).values('id')
-                # Create the relationship between the main person and the child
-                new_child_relationships = Relationships(
-                    parents_id=id_main_person,
-                    child_id=search_person_id
-                )
-                new_child_relationships.save()
+                        parents_id=id_main_person,
+                        child_id=search_person_id
+                    )
+                    new_child_relationships.save()
+                except Peoples.DoesNotExist:
+                    new_person = Peoples(full_name=child)
+                    new_person.save()
+                    search_person_id = Peoples(full_name=child)
+                    search_person_id = search_person_id.id
+                    # Create the relationship between the main person and the child
+                    new_child_relationships = Relationships(
+
+                        parents_id=id_main_person,
+                        child_id=search_person_id
+                    )
+                    new_child_relationships.save()
     finally:
         return SearchForm(full_name)
 
