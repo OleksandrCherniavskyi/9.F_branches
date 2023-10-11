@@ -18,10 +18,11 @@
     +- minus middle name
 6.+Change DB to PostgreSQL
 7. Create Django server
-    - connect to AWS PostgresDB
-    -
-8. Normalization data
-
+    +- connect to AWS PostgresDB
+    - create django query
+    - create front-end
+8. check how mysql vs PostgresDB
+9.
 
 
 IDEA:

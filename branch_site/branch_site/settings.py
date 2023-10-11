@@ -9,10 +9,9 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-import sys
-sys.path.append("C:/Users/bootbyt/PycharmProjects/9.F_branches")
-from script_to_collect_data.bard_token import db_host, db_port, db_user, db_name, db_pass
+
 from pathlib import Path
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,12 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-1ea98!dha=om6viq96fi52bi)qe3$r2mp-ux$6@cj^s90lltfi'
+SECRET_KEY = 'django-insecure-^w7jg-g2_afyoe^5g@5%%&1gd@sye(3e*i$z%ur^=$@ka=sr%5'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -57,7 +56,7 @@ ROOT_URLCONF = 'branch_site.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -79,12 +78,8 @@ WSGI_APPLICATION = 'branch_site.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': db_name,
-        'USER': db_user,
-        'PASSWORD': db_pass,
-        'HOST': db_host,
-        'PORT': db_port
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'branchdb.sqlite3',
     }
 }
 
@@ -124,7 +119,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+#STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 
+#STATICFILES_DIRS = [
+#    os.path.join(BASE_DIR, 'static')
+#]
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 

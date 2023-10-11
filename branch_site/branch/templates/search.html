@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Person</title>
+</head>
+<body>
+    <h1>Search for a Person</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Search</button>
+    </form>
+
+    {% if full_name %}
+        <h2>Person Information</h2>
+        <p>Name: {{ full_name }}</p>
+        <p>Born Date: {{ born_date }}</p>
+        <p>Death Date: {{ death_date }}</p>
+        <p>Source Link: {{ source_link }}</p>
+
+        {% if parents %}
+            <h3>Parents</h3>
+            <ul>
+                {% for parent in parents %}
+                    <li>{{ parent }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if children %}
+            <h3>Children</h3>
+            <ul>
+                {% for child in children %}
+                    <li>{{ child }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endif %}
+</body>
+</html>

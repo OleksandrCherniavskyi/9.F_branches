@@ -36,9 +36,9 @@ c = conn.cursor()
 #c.execute(drop_relativ)
 
 #drop_table_1 = """DROP TABLE IF EXISTS relationships ;"""
-drop_table_2 = """DROP TABLE IF EXISTS branch ;"""
+#drop_table_2 = """DROP TABLE IF EXISTS branch ;"""
 #c.execute(drop_table_1)
-c.execute(drop_table_2)
+#c.execute(drop_table_2)
 
 
 #delete_data_in_table = """DELETE FROM branch;"""

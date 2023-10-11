@@ -1,36 +1,59 @@
 import json
-import sqlite3
 from bardapi import Bard
-from bard_token import token
+token = 'bwiC9Ly3rPxfrUiU-3qoNV6ILig-jvMDlRNBOYnE_K0_jL95l7Ucd4D1jx3vWUkaW6B4Zw.'
 import os
-
+from sqlalchemy import create_engine
+import sqlite3
 import psycopg2
 from bard_token import db_name, db_user, db_pass, db_host, db_port
 
-conn = psycopg2.connect(
-    database=db_name,
-    user=db_user,
-    password=db_pass,
-    host=db_host,
-    port=db_port
-)
-conn.autocommit = True
+#conn = psycopg2.connect(
+#    database=db_name,
+#    user=db_user,
+#    password=db_pass,
+#    host=db_host,
+#    port=db_port
+#)
+# Load
+engine = create_engine('sqlite:///branchdb.sqlite3', echo=True)
+conn = sqlite3.connect('branchdb.sqlite3')
+#conn.autocommit = True
+
+
 
 c = conn.cursor()
-table_1 = """CREATE TABLE IF NOT EXISTS branch (
-    id SERIAL PRIMARY KEY,
-    full_name VARCHAR(255),
+#table_1 = """CREATE TABLE IF NOT EXISTS peoples (
+#    id SERIAL PRIMARY KEY,
+#    full_name VARCHAR(255),
+#    born_date DATE,
+#    death_date DATE,
+#    source_link VARCHAR(255)
+#);"""
+table_1 = """
+CREATE TABLE IF NOT EXISTS peoples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    full_name TEXT,
     born_date DATE,
     death_date DATE,
-    source_link VARCHAR(255)
-);"""
-table_2 = """CREATE TABLE IF NOT EXISTS relationships (
-    id SERIAL PRIMARY KEY,
-    parent_id INT,
-    child_id INT,
-    FOREIGN KEY(parent_id) REFERENCES branch(id),
-    FOREIGN KEY(child_id) REFERENCES branch(id)
-);"""
+    source_link TEXT
+);
+"""
+#table_2 = """CREATE TABLE IF NOT EXISTS relationships (
+#    id SERIAL PRIMARY KEY,
+#    parent_id INT,
+#    child_id INT,
+#    FOREIGN KEY(parent_id) REFERENCES peoples(id),
+#    FOREIGN KEY(child_id) REFERENCES peoples(id)
+#);"""
+table_2 ="""
+CREATE TABLE IF NOT EXISTS relationships (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    parent_id INTEGER,
+    child_id INTEGER,
+    FOREIGN KEY(parent_id) REFERENCES peoples(id),
+    FOREIGN KEY(child_id) REFERENCES peoples(id)
+);
+"""
 c.execute(table_1)
 c.execute(table_2)
 
@@ -40,31 +63,34 @@ os.environ["_BARD_API_KEY"] = token
 
 
 # QUERY
-query_ask_id_person = "SELECT id FROM branch WHERE full_name = %s;"
-query_add_family_main_person = "INSERT INTO branch (full_name) VALUES (%s) RETURNING id;"
-child_relationship = "INSERT INTO relationships (parent_id, child_id) VALUES (%s, %s);"
-
+#query_ask_id_person = "SELECT id FROM peoples WHERE full_name = %s;"
+#query_add_family_main_person = "INSERT INTO peoples (full_name) VALUES (%s) RETURNING id;"
+#child_relationship = "INSERT INTO relationships (parent_id, child_id) VALUES (%s, %s);"
+query_ask_id_person ="SELECT id FROM peoples WHERE full_name = ?"
+query_add_family_main_person ="INSERT INTO peoples (full_name) VALUES (?) RETURNING id;"
+child_relationship = 'INSERT INTO relationships (parent_id, child_id) VALUES (?, ?);'
 
 
 def check_in_db(name):
     try:
         # check person id in DB
         c.execute(query_ask_id_person, (name,))
-        #conn.commit()
+        conn.commit()
         search_person_id = c.fetchone()
         search_person_id = search_person_id[0]
     except TypeError:
     #if search_person_id is None:
         # JSON
-        message = "In JSON (full_name, born_date, depth_date, father, mother, children, source_link)  " \
+        message = "In JSON (full_name, born_date, death_date, father, mother, children, source_link)  " \
                   "format explain. If some information is unknown leave empty(null)." \
                   "Father, mother, children just a full name. For the person {}?".format(name)
         bard_search_engine(message)
     else:
         # check validation data
-        query_ask_source_link = "SELECT source_link FROM branch WHERE id = %s;"
+        #query_ask_source_link = "SELECT source_link FROM peoples WHERE id = %s;"
+        query_ask_source_link ="SELECT source_link FROM peoples WHERE id = ?;"
         c.execute(query_ask_source_link, (search_person_id,))
-        #conn.commit()
+        conn.commit()
         link = c.fetchone()
         link = link[0]
 
@@ -76,16 +102,25 @@ def check_in_db(name):
 
 def update_person_info(search_person_id):
     try:
-        parent_search_person = """SELECT t.full_name AS parent_name
-                                FROM branch AS t
-                                WHERE t.id IN (
-                                    SELECT parent_id
-                                    FROM relationships
-                                    WHERE child_id = %s
-                                );
-                                """
+        #parent_search_person = """SELECT t.full_name AS parent_name
+        #                        FROM peoples AS t
+        #                        WHERE t.id IN (
+        #                            SELECT parent_id
+        #                            FROM relationships
+        #                            WHERE child_id = %s
+        #                        );
+        #                        """
+        parent_search_person = """
+            SELECT t.full_name AS parent_name
+            FROM peoples AS t
+            WHERE t.id IN (
+                SELECT parent_id
+                FROM relationships
+                WHERE child_id = ?;
+            );
+        """
         c.execute(parent_search_person, (search_person_id,))
-        #conn.commit()
+        conn.commit()
         parent = c.fetchall()
         parent = parent
         # JSON
@@ -97,16 +132,26 @@ def update_person_info(search_person_id):
                 .format(name, parent, "parent" if " and " not in parent else "parents"))
         bard_search_engine(message)
     except IndexError:
-        children_search_person = """SELECT t.id, t.full_name AS parent,
-                (SELECT ct.full_name
-                FROM branch AS ct
-                WHERE ct.id = r.child_id) AS children
-                FROM branch AS t
+        #children_search_person = """SELECT t.id, t.full_name AS parent,
+        #        (SELECT ct.full_name
+        #        FROM peoples AS ct
+        #        WHERE ct.id = r.child_id) AS children
+        #        FROM peoples AS t
+        #        LEFT JOIN relationships AS r ON t.id = r.parent_id
+        #        WHERE t.id = %s;"""
+        children_search_person = """
+            SELECT ct.full_name
+            FROM peoples AS ct
+            WHERE ct.id IN (
+                SELECT r.child_id
+                FROM peoples AS t
                 LEFT JOIN relationships AS r ON t.id = r.parent_id
-                WHERE t.id = %s;"""
+                WHERE t.id = ?
+        );
+        """
 
         c.execute(children_search_person, (search_person_id,))
-        #conn.commit()
+        conn.commit()
         childrens = c.fetchall()
         child_names = [children[2] for children in childrens]
         # JSON
@@ -196,32 +241,40 @@ def json_to_sql(data_dict):
         try:
             # check person id in DB
             c.execute(query_ask_id_person, (full_name,))
-            #conn.commit()
+            conn.commit()
             search_person_id = c.fetchone()
             search_person_id = search_person_id[0]
+            #query_update_main_person = """
+            #    UPDATE peoples
+            #    SET full_name = %s, born_date = %s, death_date = %s, source_link = %s
+            #    WHERE id = %s;
+            #"""
             query_update_main_person = """
-                UPDATE branch
-                SET full_name = %s, born_date = %s, death_date = %s, source_link = %s
-                WHERE id = %s;
+            UPDATE peoples
+            SET full_name = ?, born_date = ?, death_date = ?, source_link = ?
+            WHERE id = ?;
             """
 
             c.execute(query_update_main_person,
                       (full_name, born_date, death_date, source_link, search_person_id))
-            #conn.commit()
+            conn.commit()
         except TypeError:
-            query_add_main_person = """
-                INSERT INTO branch (full_name, born_date, death_date, source_link)
-                VALUES (%s, %s, %s, %s)
-                RETURNING id;
-            """
+            #query_add_main_person = """
+            #    INSERT INTO peoples (full_name, born_date, death_date, source_link)
+            #    VALUES (%s, %s, %s, %s)
+            #    RETURNING id;
+            #"""
+            query_add_main_person = """INSERT INTO peoples (full_name, born_date, death_date, source_link)
+                VALUES (?, ?, ?, ?);
+                """
 
             c.execute(query_add_main_person, (full_name, born_date, death_date, source_link))
-            #conn.commit()
+            conn.commit()
 
         # ID main person
 
         c.execute(query_ask_id_person, (full_name,))
-        #conn.commit()
+        conn.commit()
         id_main_person = c.fetchone()
         id_main_person = id_main_person[0]
 
@@ -233,18 +286,17 @@ def json_to_sql(data_dict):
             try:
                 # check person id in DB
                 c.execute(query_ask_id_person, (father,))
-                #conn.commit()
+                conn.commit()
                 search_person_id = c.fetchone()
                 search_person_id = search_person_id[0]
             except TypeError:
                 c.execute(query_add_family_main_person, (father,))
-                #conn.commit()
                 c.execute(query_ask_id_person, (father,))
-                #conn.commit()
+                conn.commit()
                 id_father = c.fetchone()
                 id_father = id_father[0]
                 c.execute(child_relationship, (id_father, id_main_person))
-                #conn.commit()
+                conn.commit()
 
         if mother is None:
             pass
@@ -252,18 +304,17 @@ def json_to_sql(data_dict):
             try:
                 # check person id in DB
                 c.execute(query_ask_id_person, (mother,))
-                #conn.commit()
+                conn.commit()
                 search_person_id = c.fetchone()
                 search_person_id = search_person_id[0]
             except TypeError:
                 c.execute(query_add_family_main_person, (mother,))
-                #conn.commit()
                 c.execute(query_ask_id_person, (mother,))
-                #conn.commit()
+                conn.commit()
                 id_mother = c.fetchone()
                 id_mother = id_mother[0]
                 c.execute(child_relationship, (id_mother, id_main_person))
-                #conn.commit()
+                conn.commit()
 
 
         # ADD children main person
@@ -273,20 +324,24 @@ def json_to_sql(data_dict):
         else:
             for child in childrens:
                 c.execute(query_ask_id_person, (child,))
+                conn.commit()
                 search_person_id = c.fetchone()
 
                 if search_person_id:
                     # Person already exists in the DB
                     search_person_id = search_person_id[0]
                 else:
-                    # Add the child to the branch table
+                    # Add the child to the peoples table
                     c.execute(query_add_family_main_person, (child,))
+                    conn.commit()
                     c.execute(query_ask_id_person, (child,))
+                    conn.commit()
                     search_person_id = c.fetchone()
                     search_person_id = search_person_id[0]
 
                 # Create the relationship between the main person and the child
                 c.execute(child_relationship, (id_main_person, search_person_id))
+                conn.commit()
     finally:
         c.close()
 

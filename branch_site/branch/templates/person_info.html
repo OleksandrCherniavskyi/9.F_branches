@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Person Information</title>
+</head>
+<body>
+    <h1>Person Information</h1>
+
+    {% if person %}
+    <p><strong>Name:</strong> {{ person.full_name }}</p>
+    <p><strong>Date of Birth:</strong> {{ person.born_date }}</p>
+    <p><strong>Date of Death:</strong> {{ person.death_date }}</p>
+    <p><strong>Source Link:</strong> {{ person.source_link }}</p>
+    {% else %}
+    <p>No person found with the specified name.</p>
+    {% endif %}
+
+    <a href="{% url 'search_person' %}">Back to Search</a>
+</body>
+</html>
